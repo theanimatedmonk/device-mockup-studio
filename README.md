@@ -1,5 +1,7 @@
 # device-stage
 
+**[Try the live studio →](https://theanimatedmonk.github.io/rive-cli-skills/mockup-devices/)** · [Example page](https://theanimatedmonk.github.io/rive-cli-skills/mockup-devices/examples/element.html) · MIT licensed
+
 Real 3D phones in an Apple-style studio, with **your live UI running on their screens**. The models are iPhone 17 Pro, iPhone Air and Galaxy S25 Ultra, built in code at their real sizes.
 
 The screen isn't a picture of your app. It's your app: real HTML, CSS, JS and Rive canvases, running and tappable, with the phone's glass, Dynamic Island and studio reflections drawn over it.
@@ -17,13 +19,55 @@ How it works:
 - A WebGL canvas on top draws the phones and the studio, and leaves a clear hole where each screen is.
 - Both layers share one camera, so the UI stays locked to the glass however the phone moves.
 
-## Install
+## Quick start: no install
 
-The package depends on `three` (peer, version 0.165 or later) and `mp4-muxer`.
+Save this as an HTML file and open it with any local server, for example `npx serve` or `python3 -m http.server`. It loads everything from a CDN.
+
+```html
+<!doctype html>
+<script type="importmap">
+  { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/",
+      "mp4-muxer": "https://cdn.jsdelivr.net/npm/mp4-muxer@5.2.2/+esm"
+  } }
+</script>
+<script type="module">
+  import { defineDeviceStage } from "https://cdn.jsdelivr.net/gh/theanimatedmonk/rive-cli-skills@main/mockup-devices/src/index.js";
+  defineDeviceStage();
+</script>
+<style>body { margin: 0 } device-stage { display: block; width: 100vw; height: 100vh }</style>
+
+<device-stage device="iphone17pro" finish="Deep Blue" shot="float">
+  <div style="height: 100%; display: grid; place-items: center; background: #111; color: #fff">
+    Hello from my app
+  </div>
+</device-stage>
+```
+
+Put your own UI in place of the `<div>`, or point the phone at a page you already have with `src="http://localhost:5173/"`.
+
+## Get the code
+
+To get only this folder, without the rest of the repo:
 
 ```sh
-npm i three ./path/to/mockup-devices        # from this repo, as a local package
+npx degit theanimatedmonk/rive-cli-skills/mockup-devices device-stage
+cd device-stage
+python3 -m http.server 8765      # then open http://localhost:8765/ for the studio
 ```
+
+The folder needs no build step. On its own, the studio's phones run the built-in demo app. In a full clone of the repo they run the tarot flow next to it.
+
+## Install in your project
+
+The package isn't on npm yet. Install it from your copy of the folder:
+
+```sh
+npm i three ./device-stage
+```
+
+It depends on `three` (a peer dependency, version 0.165 or later) and `mp4-muxer`.
 
 ```js
 import { defineDeviceStage } from "@theanimatedmonk/device-stage";
@@ -152,20 +196,20 @@ The camera is deterministic: `seek(t)` puts every device and the camera exactly 
 The studio is a control panel over one stage, for designing shots. Its sections:
 - Shot.
 - Pointer.
-- Devices: model, finish, and screen (Tarot, Demo, a page URL, a dropped file).
+- Devices: model, finish, and screen (Demo, Tarot in the full repo, a page URL, a dropped file).
 - Camera: orbit (Y axis), height (X), roll (Z), distance, lens, aim, and saving A and B for a move.
 - Device rotation.
 - Look.
 - Output.
 - For scripts: copy the state or a link.
 
-By default, every phone runs the live tarot flow from `../tarot-frontend-demo/?embed=1&auto=1`. It plays itself and tells the stage when each run starts, so the `tarot` shot's camera moves follow it.
+In a full clone of the repo, every phone runs the live tarot flow from `../tarot-frontend-demo/?embed=1&auto=1`. It plays itself and tells the stage when each run starts, so the `tarot` shot's camera moves follow it. Without that folder, the phones run the built-in demo app and the studio starts on the Float shot.
 
-Serve the repo root and open it:
+To run it, serve the repo root, or the folder itself if you copied it alone:
 
 ```sh
 python3 -m http.server 8765
-open http://localhost:8765/mockup-devices/
+open http://localhost:8765/mockup-devices/   # or http://localhost:8765/ for the folder alone
 ```
 
 The studio's other entry points:
@@ -180,3 +224,7 @@ The studio's other entry points:
 | Space | Play or pause |
 | L | The pointer lock |
 | H | Hide the panel |
+
+## License
+
+MIT. See [LICENSE](LICENSE).
