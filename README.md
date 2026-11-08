@@ -1,8 +1,10 @@
-# device-stage
+# device-mockup-studio
 
-**[Try the live studio →](https://theanimatedmonk.github.io/rive-cli-skills/mockup-devices/)** · [Example page](https://theanimatedmonk.github.io/rive-cli-skills/mockup-devices/examples/element.html) · MIT licensed
+Real 3D phones in an Apple-style studio — npm [`@theanimatedmonk/device-mockup-studio`](package.json), web component `<device-stage>`.
 
-Real 3D phones in an Apple-style studio, with **your live UI running on their screens**. The models are iPhone 17 Pro, iPhone Air and Galaxy S25 Ultra, built in code at their real sizes.
+**[Try the live studio →](https://theanimatedmonk.github.io/device-mockup-studio/)** · [Example page](https://theanimatedmonk.github.io/device-mockup-studio/examples/element.html) · MIT licensed
+
+With **your live UI running on their screens**. The models are iPhone 17 Pro, iPhone Air and Galaxy S25 Ultra, built in code at their real sizes.
 
 The screen isn't a picture of your app. It's your app: real HTML, CSS, JS and Rive canvases, running and tappable, with the phone's glass, Dynamic Island and studio reflections drawn over it.
 
@@ -33,7 +35,7 @@ Save this as an HTML file and open it with any local server, for example `npx se
   } }
 </script>
 <script type="module">
-  import { defineDeviceStage } from "https://cdn.jsdelivr.net/gh/theanimatedmonk/rive-cli-skills@main/mockup-devices/src/index.js";
+  import { defineDeviceStage } from "https://cdn.jsdelivr.net/gh/theanimatedmonk/device-mockup-studio@v0.1.0/src/index.js";
   defineDeviceStage();
 </script>
 <style>body { margin: 0 } device-stage { display: block; width: 100vw; height: 100vh }</style>
@@ -49,28 +51,31 @@ Put your own UI in place of the `<div>`, or point the phone at a page you alread
 
 ## Get the code
 
-To get only this folder, without the rest of the repo:
-
 ```sh
-npx degit theanimatedmonk/rive-cli-skills/mockup-devices device-stage
-cd device-stage
+git clone https://github.com/theanimatedmonk/device-mockup-studio.git
+cd device-mockup-studio
+# or: npx degit theanimatedmonk/device-mockup-studio my-stage && cd my-stage
 python3 -m http.server 8765      # then open http://localhost:8765/ for the studio
 ```
 
-The folder needs no build step. On its own, the studio's phones run the built-in demo app. In a full clone of the repo they run the tarot flow next to it.
+There is no build step. The studio opens on the **Float** shot with the built-in demo app on each phone.
 
 ## Install in your project
 
-The package isn't on npm yet. Install it from your copy of the folder:
+```sh
+npm i three @theanimatedmonk/device-mockup-studio
+```
+
+From a local clone instead of the registry:
 
 ```sh
-npm i three ./device-stage
+npm i three .
 ```
 
 It depends on `three` (a peer dependency, version 0.165 or later) and `mp4-muxer`.
 
 ```js
-import { defineDeviceStage } from "@theanimatedmonk/device-stage";
+import { defineDeviceStage } from "@theanimatedmonk/device-mockup-studio";
 defineDeviceStage(); // registers <device-stage>
 ```
 
@@ -123,7 +128,7 @@ The element's `.stage` is the `DeviceStage`.
 ## The stage from script
 
 ```js
-import { DeviceStage } from "@theanimatedmonk/device-stage";
+import { DeviceStage } from "@theanimatedmonk/device-mockup-studio";
 const stage = new DeviceStage(container, { state: { shot: "tilt" }, screens: { checkout: (model) => `/flows/checkout/?platform=${model}` } });
 
 stage.screen(0).append(myAppElement);            // live elements on device 1
@@ -158,7 +163,7 @@ stage.on((state) => { /* after each change */ });
 
 | Shot | Devices | Shape |
 |---|---|---|
-| `tarot` | 1 | Timed to the tarot flow |
+| `tarot` | 1 | Legacy shot timed to a self-playing embed (see `src/shots.js`) |
 | `reveal` | 1 | |
 | `float` | 1 | Loops |
 | `tilt` | 1 | |
@@ -196,20 +201,18 @@ The camera is deterministic: `seek(t)` puts every device and the camera exactly 
 The studio is a control panel over one stage, for designing shots. Its sections:
 - Shot.
 - Pointer.
-- Devices: model, finish, and screen (Demo, Tarot in the full repo, a page URL, a dropped file).
+- Devices: model, finish, and screen (Demo, a page URL, a dropped file).
 - Camera: orbit (Y axis), height (X), roll (Z), distance, lens, aim, and saving A and B for a move.
 - Device rotation.
 - Look.
 - Output.
 - For scripts: copy the state or a link.
 
-In a full clone of the repo, every phone runs the live tarot flow from `../tarot-frontend-demo/?embed=1&auto=1`. It plays itself and tells the stage when each run starts, so the `tarot` shot's camera moves follow it. Without that folder, the phones run the built-in demo app and the studio starts on the Float shot.
-
-To run it, serve the repo root, or the folder itself if you copied it alone:
+By default every phone runs the **built-in demo app**. Point a slot at your own page with `?embed=1` (and optionally `?auto=1` for a self-playing flow); the stage can listen for `postMessage` events to reset the shot clock when a run starts — the pattern used by the legacy `tarot` shot in `src/shots.js`.
 
 ```sh
 python3 -m http.server 8765
-open http://localhost:8765/mockup-devices/   # or http://localhost:8765/ for the folder alone
+open http://localhost:8765/
 ```
 
 The studio's other entry points:
