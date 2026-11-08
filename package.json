@@ -1,14 +1,13 @@
 {
-  "name": "@theanimatedmonk/device-stage",
+  "name": "@deanimatedmonk/device-mockup-studio",
   "version": "0.1.0",
   "description": "Real 3D phones (iPhone 17 Pro, iPhone Air, Galaxy S25 Ultra) in an Apple-style studio, with your live UI running on their screens. A web component and a three.js stage, scriptable for video.",
-  "homepage": "https://theanimatedmonk.github.io/rive-cli-skills/mockup-devices/",
+  "homepage": "https://theanimatedmonk.github.io/device-mockup-studio/",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/theanimatedmonk/rive-cli-skills.git",
-    "directory": "mockup-devices"
+    "url": "git+https://github.com/theanimatedmonk/device-mockup-studio.git"
   },
-  "bugs": "https://github.com/theanimatedmonk/rive-cli-skills/issues",
+  "bugs": "https://github.com/theanimatedmonk/device-mockup-studio/issues",
   "author": "Sajal Kumar",
   "type": "module",
   "main": "src/index.js",

@@ -5,7 +5,9 @@ description: Wrap a mobile screen flow (the real UI code, not a recording) in a 
 
 # device-stage: live UI in a 3D phone
 
-The package lives in `mockup-devices/` (`@theanimatedmonk/device-stage`); its README is the full reference. How it works:
+Repo: [device-mockup-studio](https://github.com/theanimatedmonk/device-mockup-studio) (`@deanimatedmonk/device-mockup-studio`). The README is the full reference.
+
+How it works:
 - The phone's screen is a **real DOM element** at the phone's CSS viewport, placed in 3D with three.js `CSS3DRenderer`.
 - A WebGL canvas draws the phone and the studio over it, with a clear hole for the screen.
 - The UI keeps running: taps, scrolls, Rive canvases, CSS animations.
@@ -22,7 +24,7 @@ Pick the mount that fits the UI:
   <device-stage device="iphone17pro" finish="Deep Blue" src="../my-flow/?embed=1" shot="float"></device-stage>
   ```
 
-  Give the page an embed mode (`?embed=1`) that hides any 2D device frame or page chrome and fills the window. If it was designed at a fixed size, zoom its root to the window, as `tarot-frontend-demo/main.js` does.
+  Give the page an **embed mode** (`?embed=1`) that hides any 2D device frame or page chrome and fills the window. If it was designed at a fixed size, zoom its root to the phone viewport on load.
 
 - **A component or a few screens**: use children. They go on device 1's screen; a child with `screen="2"` or `screen="3"` goes on the second or third device.
 
@@ -43,7 +45,7 @@ Pick the mount that fits the UI:
 
 Design at those sizes, or zoom to them.
 
-**Setup:** `import { defineDeviceStage } from "…/mockup-devices/src/index.js"; defineDeviceStage();`. Without a bundler, use an import map for `three`, `three/addons/` and `mp4-muxer`; copy the one in `mockup-devices/examples/element.html`.
+**Setup:** `import { defineDeviceStage } from "@deanimatedmonk/device-mockup-studio"` (or `src/index.js` from a clone). Without a bundler, use an import map for `three`, `three/addons/` and `mp4-muxer`; copy the one in `examples/element.html`.
 
 ## Drive it from script
 
@@ -69,13 +71,14 @@ Design at those sizes, or zoom to them.
 | `custom` | Camera A to B, from `move.a` / `move.b` |
 | `manual` | Camera from `camera` |
 
-`tarot` is timed to the tarot demo. For a new flow, copy that shot in `src/shots.js`: it eases the pose and camera through timed keys, and the `track()` helper does the easing.
+For a **camera move that follows your flow**, add a shot in `src/shots.js`: ease the pose and camera through timed keys (`track()` helps). A self-playing embed can reset the stage clock when each run starts (see below).
 
-**Make the flow play itself for filming**, as `tarot-frontend-demo`'s `?auto=1` does:
+**Make the flow play itself for filming** (pattern: `?embed=1&auto=1` on the iframe URL):
+
 1. Wait for the app to be ready.
 2. Tap with synthetic pointer and mouse events at design coordinates. Rive canvases accept them.
 3. Scroll with `scrollTop` over `requestAnimationFrame`.
-4. Post `{ <name>: "start" }` to the parent when a run begins, and have the page hosting the stage reset `stage.state.time = 0` on it, so the camera beats line up with the UI.
+4. Post `{ <name>: "start" }` to the parent when a run begins; on the host page, reset `stage.state.time = 0` so camera beats line up with the UI.
 
 ## Video
 
@@ -92,6 +95,9 @@ For both, render on a virtual clock so the UI's own animations step with the cam
 
 ## The studio page
 
-`mockup-devices/index.html` is a control panel over a stage, for finding a shot by hand. Its **Copy state** button gives the exact JSON a script passes to `set()` or `?state=`. Its `window.mockup` is the stage.
+`index.html` at the repo root is a control panel over a stage, for finding a shot by hand. Its **Copy state** button gives the exact JSON a script passes to `set()` or `?state=`. Its `window.mockup` is the stage.
 
-Serve the repo root (`python3 -m http.server 8765`) and open `/mockup-devices/`.
+```sh
+python3 -m http.server 8765
+# open http://localhost:8765/
+```
