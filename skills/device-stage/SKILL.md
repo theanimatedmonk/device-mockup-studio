@@ -5,7 +5,7 @@ description: Wrap a mobile screen flow (the real UI code, not a recording) in a 
 
 # device-stage: live UI in a 3D phone
 
-Repo: [device-mockup-studio](https://github.com/theanimatedmonk/device-mockup-studio) (`@theanimatedmonk/device-mockup-studio`). The README is the full reference.
+Repo: [device-mockup-studio](https://github.com/theanimatedmonk/device-mockup-studio) (`@deanimatedmonk/device-mockup-studio`). The README is the full reference.
 
 How it works:
 - The phone's screen is a **real DOM element** at the phone's CSS viewport, placed in 3D with three.js `CSS3DRenderer`.
@@ -45,7 +45,7 @@ Pick the mount that fits the UI:
 
 Design at those sizes, or zoom to them.
 
-**Setup:** `import { defineDeviceStage } from "@theanimatedmonk/device-mockup-studio"` (or `src/index.js` from a clone). Without a bundler, use an import map for `three`, `three/addons/` and `mp4-muxer`; copy the one in `examples/element.html`.
+**Setup:** `import { defineDeviceStage } from "@deanimatedmonk/device-mockup-studio"` (or `src/index.js` from a clone). Without a bundler, use an import map for `three`, `three/addons/` and `mp4-muxer`; copy the one in `examples/element.html`.
 
 ## Drive it from script
 

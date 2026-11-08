@@ -1,8 +1,12 @@
 # device-mockup-studio
 
-Real 3D phones in an Apple-style studio — npm [`@theanimatedmonk/device-mockup-studio`](package.json), web component `<device-stage>`.
+Real 3D phones in an Apple-style studio — npm [`@deanimatedmonk/device-mockup-studio`](package.json), web component `<device-stage>`.
 
-**[Try the live studio →](https://theanimatedmonk.github.io/device-mockup-studio/)** · [Example page](https://theanimatedmonk.github.io/device-mockup-studio/examples/element.html) · MIT licensed
+**[Try the live studio →](https://theanimatedmonk.github.io/device-mockup-studio/)** · [Example page](https://theanimatedmonk.github.io/device-mockup-studio/examples/element.html) · [npm](https://www.npmjs.com/package/@deanimatedmonk/device-mockup-studio) · MIT licensed
+
+```sh
+npm i three @deanimatedmonk/device-mockup-studio
+```
 
 With **your live UI running on their screens**. The models are iPhone 17 Pro, iPhone Air and Galaxy S25 Ultra, built in code at their real sizes.
 
@@ -63,7 +67,7 @@ There is no build step. The studio opens on the **Float** shot with the built-in
 ## Install in your project
 
 ```sh
-npm i three @theanimatedmonk/device-mockup-studio
+npm i three @deanimatedmonk/device-mockup-studio
 ```
 
 From a local clone instead of the registry:
@@ -75,7 +79,7 @@ npm i three .
 It depends on `three` (a peer dependency, version 0.165 or later) and `mp4-muxer`.
 
 ```js
-import { defineDeviceStage } from "@theanimatedmonk/device-mockup-studio";
+import { defineDeviceStage } from "@deanimatedmonk/device-mockup-studio";
 defineDeviceStage(); // registers <device-stage>
 ```
 
@@ -128,7 +132,7 @@ The element's `.stage` is the `DeviceStage`.
 ## The stage from script
 
 ```js
-import { DeviceStage } from "@theanimatedmonk/device-mockup-studio";
+import { DeviceStage } from "@deanimatedmonk/device-mockup-studio";
 const stage = new DeviceStage(container, { state: { shot: "tilt" }, screens: { checkout: (model) => `/flows/checkout/?platform=${model}` } });
 
 stage.screen(0).append(myAppElement);            // live elements on device 1
