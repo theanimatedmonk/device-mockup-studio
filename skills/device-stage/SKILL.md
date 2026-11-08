@@ -42,6 +42,8 @@ Pick the mount that fits the UI:
 | `iphone17pro` | 402 × 874 |
 | `iphoneAir` | 420 × 912 |
 | `s25ultra` | 412 × 892 |
+| `ipadPro11` | 834 × 1210 |
+| `macbookPro14` | 1512 × 982 |
 
 Design at those sizes, or zoom to them.
 

@@ -4,6 +4,8 @@
 import * as THREE from "three";
 
 const W = 900, H = 1956; // about the phones' screen shape (2.17 : 1)
+const DW = 1280, DH = 832; // MacBook Pro 14" default scaled aspect (~3 : 2)
+const TW = 900, TH = 1306; // iPad Pro 11" portrait (834 x 1210)
 const FONT = `-apple-system, "SF Pro Display", "Inter", "Segoe UI", system-ui, sans-serif`;
 
 function rr(g, x, y, w, h, r) {
@@ -200,6 +202,112 @@ function drawContent() {
   return c;
 }
 
+// The desktop / tablet app: a sidebar, cards and a list, at any width.
+function drawDesktopContent(DW = 1280) {
+  const c = document.createElement("canvas");
+  c.width = DW;
+  c.height = 2200;
+  const g = c.getContext("2d");
+  const bg = g.createLinearGradient(0, 0, DW, 0);
+  bg.addColorStop(0, "#f4f5f8");
+  bg.addColorStop(1, "#eceef4");
+  g.fillStyle = bg;
+  g.fillRect(0, 0, DW, c.height);
+
+  g.fillStyle = "rgba(255,255,255,0.82)";
+  g.fillRect(0, 0, 220, c.height);
+  g.fillStyle = "#1d1d1f";
+  g.font = `600 14px ${FONT}`;
+  g.fillText("Favorites", 28, 96);
+  const items = ["Design", "Prototype", "Ship", "Notes", "Archive"];
+  items.forEach((t, i) => {
+    const y = 140 + i * 44;
+    g.fillStyle = i === 1 ? "#0071e3" : "#3c3c43";
+    g.font = `${i === 1 ? 600 : 500} 15px ${FONT}`;
+    g.fillText(t, 28, y);
+  });
+
+  g.fillStyle = "#14161f";
+  g.font = `700 42px ${FONT}`;
+  g.fillText("Product review", 260, 120);
+  g.fillStyle = "#6e6e73";
+  g.font = `500 18px ${FONT}`;
+  g.fillText("Q4 roadmap · Updated today", 262, 154);
+
+  const cards = [
+    ["Motion", "Refine hero transitions", ["#5b4cf6", "#7b6cff"]],
+    ["Devices", "Mac + phone parity", ["#ff6b2c", "#ff8f4d"]],
+    ["Export", "HyperFrames hooks", ["#2fb344", "#55c76a"]],
+  ];
+  cards.forEach(([title, sub, [c1, c2]], i) => {
+    const cw = Math.min(360, (DW - 330) / 2), ch = 210;
+    const x = 260 + (i % 2) * (cw + 30);
+    const y = 200 + Math.floor(i / 2) * 250;
+    const grad = g.createLinearGradient(x, y, x + cw, y + ch);
+    grad.addColorStop(0, c1);
+    grad.addColorStop(1, c2);
+    g.fillStyle = grad;
+    rr(g, x, y, cw, ch, 22);
+    g.fill();
+    g.fillStyle = "#fff";
+    g.font = `700 28px ${FONT}`;
+    g.fillText(title, x + 28, y + 56);
+    g.font = `500 17px ${FONT}`;
+    g.fillText(sub, x + 28, y + 92);
+  });
+
+  for (let i = 0; i < 8; i++) {
+    const y = 720 + i * 160;
+    g.fillStyle = "#fff";
+    rr(g, 260, y, DW - 300, 120, 18);
+    g.fill();
+    g.fillStyle = "#1d1d1f";
+    g.font = `600 22px ${FONT}`;
+    g.fillText(`Milestone ${i + 1}`, 288, y + 48);
+    g.fillStyle = "#8e8e93";
+    g.font = `500 16px ${FONT}`;
+    g.fillText("Scope, owners and target release window", 288, y + 78);
+  }
+  return c;
+}
+
+function drawDesktopChrome(g) {
+  g.fillStyle = "rgba(246,246,248,0.92)";
+  g.fillRect(0, 0, DW, 32);
+  g.fillStyle = "#ff5f57";
+  g.beginPath();
+  g.arc(22, 16, 6, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = "#febc2e";
+  g.beginPath();
+  g.arc(42, 16, 6, 0, Math.PI * 2);
+  g.fill();
+  g.fillStyle = "#28c840";
+  g.beginPath();
+  g.arc(62, 16, 6, 0, Math.PI * 2);
+  g.fill();
+}
+
+// The tablet's chrome: a slim status bar and the home indicator.
+function drawTabletChrome(g) {
+  g.fillStyle = "rgba(244,245,248,0.94)";
+  g.fillRect(0, 0, TW, 48);
+  g.fillStyle = "#14161f";
+  g.font = `600 22px ${FONT}`;
+  g.fillText("9:41", 36, 32);
+  g.font = `500 22px ${FONT}`;
+  g.fillText("Mon Jun 9", 96, 32);
+  g.lineWidth = 2;
+  g.strokeStyle = "#14161f";
+  rr(g, TW - 76, 16, 40, 20, 6);
+  g.stroke();
+  g.fillStyle = "#14161f";
+  rr(g, TW - 73, 19, 30, 14, 4);
+  g.fill();
+  rr(g, TW / 2 - 110, TH - 18, 220, 8, 4);
+  g.fill();
+}
+
 // The fixed chrome: the status bar, the floating tab bar, the home bar.
 function drawChrome(g, android) {
   g.fillStyle = "#14161f";
@@ -279,25 +387,29 @@ function drawChrome(g, android) {
 
 // The demo app: one canvas, redrawn only when its scroll moves.
 export class DemoScreen {
-  constructor(android = false) {
-    this.content = drawContent();
+  constructor(androidOrOpts = false) {
+    const opts = typeof androidOrOpts === "object" ? androidOrOpts : { android: !!androidOrOpts };
+    this.desktop = !!opts.desktop;
+    this.tablet = !!opts.tablet;
+    this.android = !!opts.android;
+    this.content = this.tablet ? drawDesktopContent(TW) : this.desktop ? drawDesktopContent() : drawContent();
     this.canvas = document.createElement("canvas");
-    this.canvas.width = W;
-    this.canvas.height = H;
+    this.canvas.width = this.tablet ? TW : this.desktop ? DW : W;
+    this.canvas.height = this.tablet ? TH : this.desktop ? DH : H;
     this.g = this.canvas.getContext("2d");
-    this.android = android;
     this.texture = new THREE.CanvasTexture(this.canvas);
     this.texture.colorSpace = THREE.SRGBColorSpace;
     this.texture.anisotropy = 8;
     this.lastScroll = -1;
-    this.aspect = W / H;
+    this.aspect = this.canvas.width / this.canvas.height;
   }
 
   // The scroll, from time: rest, glide down, rest, glide back. 12 s a loop.
   update(t) {
     const p = (t % 12) / 12;
     const ease = (x) => x * x * (3 - 2 * x);
-    const max = this.content.height - H + 120;
+    const viewH = this.canvas.height;
+    const max = this.content.height - viewH + 120;
     let s;
     if (p < 0.2) s = 0;
     else if (p < 0.45) s = ease((p - 0.2) / 0.25);
@@ -308,14 +420,21 @@ export class DemoScreen {
     if (scroll === this.lastScroll) return;
     this.lastScroll = scroll;
     const g = this.g;
-    g.drawImage(this.content, 0, -scroll + 40);
-    // The status bar sits over a soft fade of the content.
-    const fade = g.createLinearGradient(0, 0, 0, 170);
-    fade.addColorStop(0, "rgba(238,240,247,1)");
-    fade.addColorStop(1, "rgba(238,240,247,0)");
-    g.fillStyle = fade;
-    g.fillRect(0, 0, W, 170);
-    drawChrome(g, this.android);
+    if (this.tablet) {
+      g.drawImage(this.content, 0, -scroll + 20);
+      drawTabletChrome(g);
+    } else if (this.desktop) {
+      g.drawImage(this.content, 0, -scroll);
+      drawDesktopChrome(g);
+    } else {
+      g.drawImage(this.content, 0, -scroll + 40);
+      const fade = g.createLinearGradient(0, 0, 0, 170);
+      fade.addColorStop(0, "rgba(238,240,247,1)");
+      fade.addColorStop(1, "rgba(238,240,247,0)");
+      g.fillStyle = fade;
+      g.fillRect(0, 0, W, 170);
+      drawChrome(g, this.android);
+    }
     this.texture.needsUpdate = true;
   }
 }
