@@ -16,18 +16,21 @@ import { BACKDROPS } from "./studio.js";
 import { buildUI } from "./ui.js";
 
 // "tarot": the tarot demo, embedded and playing itself, with each
-// platform's status bar.
-const SCREENS = {
-  tarot: (model, spec) => `../tarot-frontend-demo/?embed=1&auto=1&frame=${spec.cutout === "punch" ? "android" : "iphone"}`,
-};
+// platform's status bar. It lives next to this folder in the full repo;
+// a copy of this folder alone runs the built-in demo app instead.
+const TAROT = "../tarot-frontend-demo/";
+const hasTarot = await fetch(TAROT, { method: "HEAD" }).then((r) => r.ok, () => false);
+const SCREENS = hasTarot
+  ? { tarot: (model, spec) => `${TAROT}?embed=1&auto=1&frame=${spec.cutout === "punch" ? "android" : "iphone"}` }
+  : {};
+const screen = hasTarot ? "tarot" : "";
 
 const STUDIO = merge(JSON.parse(JSON.stringify(DEFAULTS)), {
-  shot: "tarot",
-  duration: 22,
+  ...(hasTarot ? { shot: "tarot", duration: 22 } : { shot: "float" }),
   slots: [
-    { model: "iphone17pro", finish: "Cosmic Orange", screen: "tarot" },
-    { model: "s25ultra", finish: "Titanium Silverblue", screen: "tarot" },
-    { model: "iphoneAir", finish: "Sky Blue", screen: "tarot" },
+    { model: "iphone17pro", finish: "Cosmic Orange", screen },
+    { model: "s25ultra", finish: "Titanium Silverblue", screen },
+    { model: "iphoneAir", finish: "Sky Blue", screen },
   ],
   output: { aspect: "16:9" },
 });

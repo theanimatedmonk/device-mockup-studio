@@ -153,7 +153,7 @@ export function buildUI(api, state, { DEVICES, BACKDROPS, ASPECTS, loadFile }) {
       el(
         "div", { class: "row" },
         el("button", { type: "button", class: "btn small", onclick: () => file.click() }, "Screen video / image"),
-        el("button", { type: "button", class: "btn small ghost", onclick: () => api.set(patchFor(`slots.${i}.screen`, "tarot")) }, "Tarot"),
+        api.namedScreens?.tarot ? el("button", { type: "button", class: "btn small ghost", onclick: () => api.set(patchFor(`slots.${i}.screen`, "tarot")) }, "Tarot") : null,
         el("button", { type: "button", class: "btn small ghost", onclick: () => api.setScreen(i, "") }, "Demo"),
         file,
       ),
