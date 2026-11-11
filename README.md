@@ -2,13 +2,15 @@
 
 Real 3D phones in an Apple-style studio — npm [`@deanimatedmonk/device-mockup-studio`](package.json), web component `<device-stage>`.
 
-**[Try the live studio →](https://theanimatedmonk.github.io/device-mockup-studio/)** · [Example page](https://theanimatedmonk.github.io/device-mockup-studio/examples/element.html) · [npm](https://www.npmjs.com/package/@deanimatedmonk/device-mockup-studio) · MIT licensed
+**[Try the live studio →](https://theanimatedmonk.github.io/device-mockup-studio/)** · [Example page](https://theanimatedmonk.github.io/device-mockup-studio/examples/element.html) · [HyperFrames example](examples/hyperframes-macbook.html) · [npm](https://www.npmjs.com/package/@deanimatedmonk/device-mockup-studio) · MIT licensed
 
 ```sh
 npm i three @deanimatedmonk/device-mockup-studio
 ```
 
 With **your live UI running on their screens**. The models are iPhone 17 Pro, iPhone Air, Galaxy S25 Ultra, iPad Pro 11″ and MacBook Pro 14″, built in code at their real sizes.
+
+**Making a video?** Jump to [Video with HyperFrames](#video-with-hyperframes): copy the files with one script, start from `examples/hyperframes-macbook.html`, and `fillPose()` gives the exact camera pose where the screen fills the frame.
 
 The screen isn't a picture of your app. It's your app: real HTML, CSS, JS and Rive canvases, running and tappable, with the phone's glass, Dynamic Island and studio reflections drawn over it.
 
@@ -93,11 +95,13 @@ Then import `src/index.js`.
 
 | Model | Viewport (CSS px) | Safe top / bottom |
 |---|---|---|
-| `iphone17pro` | 402 × 874 | 62 / 34 |
-| `iphoneAir` | 420 × 912 | 68 / 34 |
-| `s25ultra` | 412 × 892 | 36 / 24 |
-| `ipadPro11` | 834 × 1210 | 24 / 20 |
+| `iphone17pro` | 402 × 872 | 62 / 34 |
+| `iphoneAir` | 420 × 908 | 68 / 34 |
+| `s25ultra` | 412 × 887 | 36 / 24 |
+| `ipadPro11` | 834 × 1212 | 24 / 20 |
 | `macbookPro14` | 1512 × 982 | 32 / 0 |
+
+The heights come from each screen's real shape; `stage.viewport(model)` returns `{ width, height, safeTop, safeBottom }`, so read it rather than hard-coding.
 
 - **Children** of `<device-stage>` go on device 1's screen. A child with `screen="2"` or `screen="3"` goes on that device, for the duo and line-up shots.
   - Size your UI with `100%` or the container units `cqw` and `cqh`. `vh` and `vw` are the page's, not the phone's.
@@ -204,6 +208,88 @@ The live UI is real web content, so record the **page**, not the canvas:
 The camera is deterministic: `seek(t)` puts every device and the camera exactly where they are at `t`. The UI inside runs on the page's own clock, so a renderer that controls page time steps both together.
 
 `exportVideo()` and `snapshot()` encode the canvas alone, which is frame-perfect MP4 or PNG. They only work when no live screen is in view, i.e. when the screens show videos, images or the demo.
+
+## Video with HyperFrames
+
+The fastest path: the stage runs **inside the composition**, and the composition's GSAP timeline drives it through `createDevice()` (`src/rig.js`). No iframe, no `postMessage`, no stage clock.
+
+**1. Copy the files into the project** (so renders never wait on a CDN):
+
+```sh
+sh scripts/vendor-into.sh ~/path/to/hyperframes-project
+```
+
+This writes `assets/vendor/device-stage/` (this repo's `src/`), `assets/vendor/three/` (three r170 and the four addons the stage imports) and `assets/vendor/mp4-muxer.js`.
+
+**2. Start from [`examples/hyperframes-macbook.html`](examples/hyperframes-macbook.html)**: a closed MacBook opens, the camera flies onto the screen, a recording plays full frame, the camera pulls back and the lid shuts. Copy it to the project's `index.html`, put the recording at `assets/screen.mp4`, set `END`. It passes `npx hyperframes check` as is.
+
+The pieces, if you build your own:
+
+```html
+<script type="importmap">
+  { "imports": {
+      "three": "./assets/vendor/three/three.module.js",
+      "three/addons/": "./assets/vendor/three/addons/",
+      "mp4-muxer": "./assets/vendor/mp4-muxer.js"
+  } }
+</script>
+
+<div id="mac" data-layout-allow-overflow data-layout-allow-occlusion></div>   <!-- full frame: 1920 x 1080 -->
+<div id="parking">                                                            <!-- width/height 0, overflow hidden -->
+  <div id="desk">                                                             <!-- becomes the screen -->
+    <div id="content">
+      <video id="rec" class="clip" src="assets/screen.mp4" muted playsinline data-start="0" data-duration="16"></video>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { createDevice, fillPose } from "./assets/vendor/device-stage/rig.js";
+  const FILL = fillPose("macbookPro14");                       // the screen exactly fills the frame
+  const mac = createDevice(document.getElementById("mac"), {
+    model: "macbookPro14", finish: "Silver", clearBackdrop: true,
+    keys: [
+      { at: 0, el: 24, dist: 46, ty: -4, lid: 0 },             // shut
+      { at: 2.2, el: 16, dist: 44, ty: -0.5, lid: 110 },        // open
+      { at: 3.8, ...FILL, ease: "power3.inOut" },               // fly onto the screen
+      { at: 12.2, ...FILL, ease: "none" },                      // hold while the recording plays
+      { at: 13.7, el: 16, dist: 44, ty: -0.5 },                 // back out
+      { at: 15.3, el: 24, dist: 46, ty: -4, lid: 0 },           // shut
+    ],
+  });
+  const desk = document.getElementById("desk");
+  Object.assign(desk.style, { width: `${mac.viewport.width}px`, height: `${mac.viewport.height}px` });
+  mac.fit(document.getElementById("content"), 1920, 1080);   // 1920 x 1080 content, fitted to the screen's width
+  mac.screen.append(desk);
+
+  const tl = gsap.timeline({ paused: true });
+  tl.fromTo(mac, { t: 0 }, { t: 16, duration: 16, ease: "none" }, 0);   // the device follows the video clock
+  window.__timelines["main"] = tl;
+</script>
+```
+
+**`createDevice(container, options)`** returns a rig:
+
+| | |
+|---|---|
+| `model`, `finish` | Any model and finish above |
+| `keys` | Timed poses: `{ at, ease, cut, az, el, dist, fov, roll, tx, ty, rx, ry, rz, x, y, z, lid }`. Missing fields carry over from the key before; between keys every field eases together with the later key's `ease` (a GSAP ease name; default `power2.inOut`); `cut: true` jumps |
+| `look` | Any `look` state (`backdrop: "Custom"`, `inner`, `outer`, `shadow`, …) |
+| `clearBackdrop` | `true` lets the page's background show behind the device |
+| `glass` | `true` keeps the glass's reflections over the screen (off by default: they tint a recording) |
+| `rig.t` | Set it to a time in seconds to pose and draw that exact frame. Tween it from the timeline |
+| `rig.screen`, `rig.viewport` | The live screen element and its size in CSS px |
+| `rig.fit(el, w, h)` | Scales fixed-size content (`w` × `h`) to the screen's width and centres it |
+| `rig.stage` | The `DeviceStage` underneath |
+
+**`fillPose(model, { lid, fit, aspect, fov, overscan })`** returns the key fields (`az, el, dist, tx, ty, fov, lid`) that put the screen square-on and filling the frame. `fit: "width"` (default) fills the frame's width with the screen's width, so 16:9 content fitted with `rig.fit()` fills a 16:9 frame exactly; `"height"` and `"cover"` are the other choices. `overscan` (default `1.01`) pushes 1% closer so no bezel shows. For `macbookPro14` at `lid: 110` it is about `{ az: 0, el: 8, dist: 11.55, tx: 0, ty: 2.33 }`.
+
+**Things that will bite:**
+- **Media on the screen is ordinary HyperFrames media.** A `<video class="clip" muted>` (or a sub-composition) inside the screen element is found, timed and frame-injected like any other. Don't use a slot's `src` video texture in a composition: it plays on its own clock.
+- **One key list drives the camera and the lid.** Every field eases between consecutive keys, so to open the lid during a camera move, give `lid: 110` on the key where it should be fully open, and repeat values on in-between keys you want held.
+- **Mark the full-frame layers** `data-layout-allow-overflow data-layout-allow-occlusion` (the device container, the screen element and the content), or `check` reports the screen covering the canvas while it fills the frame. `first_frame_empty` about `canvas.ds-gl` is the WebGL layer, and expected.
+- **Fit the content to the screen's width, not its height.** The MacBook screen is 1.54 : 1, narrower than 16:9: width-fitted content leaves thin black bars on the glass (where the notch sits) and fills the frame exactly at `fillPose()`.
+- **Keep the stage's import map local** (step 1). A CDN import that's slow at render time gives blank first frames.
 
 ## The studio (this folder's `index.html`)
 
