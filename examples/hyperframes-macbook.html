@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<!--
+  A HyperFrames composition: a closed MacBook opens, the camera flies onto the screen,
+  a screen recording plays full frame, then the camera pulls back and the lid shuts.
+
+  Use it in a HyperFrames project:
+    1. sh scripts/vendor-into.sh <project>        (copies the stage, three.js and mp4-muxer into <project>/assets/vendor)
+    2. Copy this file to <project>/index.html, put your recording at assets/screen.mp4.
+    3. Change END and the source times below. `npx hyperframes check`, then preview.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920, height=1080">
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./assets/vendor/three/three.module.js",
+          "three/addons/": "./assets/vendor/three/addons/",
+          "mp4-muxer": "./assets/vendor/mp4-muxer.js"
+        }
+      }
+    </script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #eef0ee; }
+      #root {
+        position: relative; width: 100%; height: 100%; overflow: hidden;
+        background: radial-gradient(ellipse 70% 60% at 50% 42%, #ffffff 0%, #eef1ec 55%, #dfe4dc 100%);
+      }
+      /* The 3D device fills the frame. */
+      #mac { position: absolute !important; left: 0; top: 0; width: 1920px; height: 1080px; }
+      /* The screen's content waits here until the script moves it onto the glass. */
+      #parking { position: absolute; left: 0; top: 0; width: 0; height: 0; overflow: hidden; }
+      #desk { position: relative; overflow: hidden; background: #000; }
+      #content { background: #000; }
+      #content video { width: 1920px; height: 1080px; object-fit: cover; display: block; }
+      #screen-off { position: absolute; inset: 0; background: #000; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="16" data-width="1920" data-height="1080">
+      <div id="mac" data-layout-allow-overflow data-layout-allow-occlusion></div>
+
+      <div id="parking">
+        <div id="desk" data-layout-allow-overflow data-layout-allow-occlusion>
+          <div id="content" data-layout-allow-overflow data-layout-allow-occlusion>
+            <!-- HyperFrames owns playback: a timed, muted <video> on the glass, like anywhere else. -->
+            <video id="rec" class="clip" src="assets/screen.mp4" muted playsinline data-start="0" data-duration="16" data-media-start="0" data-track-index="0"></video>
+          </div>
+          <div id="screen-off"></div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { createDevice, fillPose } from "./assets/vendor/device-stage/rig.js";
+
+      const END = 16;
+      // The pose where the screen's width exactly fills the frame (content fitted to the screen's width fills it too).
+      const FILL = fillPose("macbookPro14");
+      const OVERVIEW = { az: 0, el: 16, dist: 44, tx: 0, ty: -0.5 };
+      const CLOSED = { el: 24, dist: 46, tx: 0, ty: -4, lid: 0 };
+
+      // One key list moves the camera and the lid together. To open the lid while the camera
+      // travels, give the lid its value on the key where it should be fully open.
+      const keys = [
+        { at: 0, az: -14, ...CLOSED },
+        { at: 0.4, az: -11, el: 22, dist: 44.5, ease: "sine.in" },
+        { at: 2.2, ...OVERVIEW, lid: 110, ease: "power2.inOut" },
+        { at: 3.8, ...FILL, ease: "power3.inOut" },
+        { at: END - 3.8, ...FILL, ease: "none" },
+        { at: END - 2.3, ...OVERVIEW, ease: "power3.inOut" },
+        { at: END - 0.7, az: 10, ...CLOSED, ease: "power2.inOut" },
+        { at: END, az: 12, el: 23, dist: 45, ease: "sine.out" },
+      ];
+
+      const mac = createDevice(document.getElementById("mac"), {
+        model: "macbookPro14",
+        finish: "Silver",
+        keys,
+        look: { backdrop: "Custom", inner: "#ffffff", outer: "#e6e7ec", shadow: 0.5, reflections: 1, exposure: 1 },
+        clearBackdrop: true, // the page's own background shows behind the device
+      });
+
+      // Size the screen element, fit the 1920 x 1080 content to its width, and put it on the glass.
+      const desk = document.getElementById("desk");
+      Object.assign(desk.style, { width: `${mac.viewport.width}px`, height: `${mac.viewport.height}px` });
+      mac.fit(document.getElementById("content"), 1920, 1080);
+      mac.screen.append(desk);
+
+      const tl = gsap.timeline({ paused: true });
+      // The device follows the video clock: every seek draws that exact frame.
+      tl.fromTo(mac, { t: 0 }, { t: END, duration: END, ease: "none" }, 0);
+      // The screen wakes as the lid opens and goes dark as it shuts.
+      tl.fromTo("#screen-off", { opacity: 1 }, { opacity: 0, duration: 0.8, ease: "power1.out", immediateRender: true }, 1.4);
+      tl.to("#screen-off", { opacity: 1, duration: 0.6, ease: "power1.in" }, END - 1.6);
+
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

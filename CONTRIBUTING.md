@@ -26,6 +26,8 @@ Then open:
 | Phone geometry and finishes | `src/devices.js` |
 | Studio environment | `src/studio.js` |
 | Camera moves | `src/shots.js` |
+| Timeline rig for video, `fillPose()` | `src/rig.js` |
+| Copying the stage into a project | `scripts/vendor-into.sh` |
 | `<device-stage>` element | `src/element.js` |
 | Studio UI panel | `src/ui.js`, `src/main.js`, `style.css` |
 
@@ -37,7 +39,8 @@ Before opening a PR:
 
 1. Load the studio and the example page with no errors in the console.
 2. Toggle pointer lock (**L**): in “Use the app”, taps hit the screen UI; in “Move the device”, drag orbits the phone.
-3. If you touched export, confirm `exportVideo()` / `snapshot()` still behave when screens show video, image, or demo only (not live DOM).
+3. If you touched devices, the rig or `fillPose()`: copy `examples/hyperframes-macbook.html` into a scratch HyperFrames project with `scripts/vendor-into.sh`, run `npx hyperframes check`, and snapshot the shut, open and full-screen moments.
+4. If you touched export, confirm `exportVideo()` / `snapshot()` still behave when screens show video, image, or demo only (not live DOM).
 
 Optional: run Playwright against the local server (headless Chrome with `--use-angle=metal` on macOS) and assert `window.mockup` exists on the studio page.
 
