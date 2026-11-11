@@ -8,7 +8,7 @@ Real 3D phones in an Apple-style studio — npm [`@deanimatedmonk/device-mockup-
 npm i three @deanimatedmonk/device-mockup-studio
 ```
 
-With **your live UI running on their screens**. The models are iPhone 17 Pro, iPhone Air and Galaxy S25 Ultra, built in code at their real sizes.
+With **your live UI running on their screens**. The models are iPhone 17 Pro, iPhone Air, Galaxy S25 Ultra, iPad Pro 11″ and MacBook Pro 14″, built in code at their real sizes.
 
 The screen isn't a picture of your app. It's your app: real HTML, CSS, JS and Rive canvases, running and tappable, with the phone's glass, Dynamic Island and studio reflections drawn over it.
 
@@ -96,6 +96,8 @@ Then import `src/index.js`.
 | `iphone17pro` | 402 × 874 | 62 / 34 |
 | `iphoneAir` | 420 × 912 | 68 / 34 |
 | `s25ultra` | 412 × 892 | 36 / 24 |
+| `ipadPro11` | 834 × 1210 | 24 / 20 |
+| `macbookPro14` | 1512 × 982 | 32 / 0 |
 
 - **Children** of `<device-stage>` go on device 1's screen. A child with `screen="2"` or `screen="3"` goes on that device, for the duo and line-up shots.
   - Size your UI with `100%` or the container units `cqw` and `cqh`. `vh` and `vw` are the page's, not the phone's.
@@ -153,7 +155,8 @@ stage.on((state) => { /* after each change */ });
   "interact": "screen",                      // or "device"
   "layout": 1,                               // devices shown in "manual"
   "slots": [                                 // device 1, 2, 3
-    { "model": "iphone17pro", "finish": "Deep Blue", "screen": "" }  // "", "dom", a URL, or a named screen
+    { "model": "iphone17pro", "finish": "Deep Blue", "screen": "",   // "", "dom", a URL, or a named screen
+      "lid": 110 }                           // a laptop's hinge: 0 shut, 110 open, 135 max
   ],
   "camera": { "azimuth": -6, "elevation": 3, "roll": 0, "distance": 44, "fov": 28, "targetX": 0, "targetY": 0 },
   "device": { "rotX": 0, "rotY": 0, "rotZ": 0, "x": 0, "y": 0, "z": 0, "float": 1 },
@@ -189,6 +192,8 @@ stage.on((state) => { /* after each change */ });
 | `iphone17pro` | Cosmic Orange, Deep Blue, Silver |
 | `iphoneAir` | Sky Blue, Light Gold, Cloud White, Space Black |
 | `s25ultra` | Titanium Silverblue, Titanium Black, Titanium Gray, Titanium Whitesilver |
+| `ipadPro11` | Space Black, Silver |
+| `macbookPro14` | Space Black, Silver |
 
 ## Video
 
@@ -205,7 +210,7 @@ The camera is deterministic: `seek(t)` puts every device and the camera exactly 
 The studio is a control panel over one stage, for designing shots. Its sections:
 - Shot.
 - Pointer.
-- Devices: model, finish, and screen (Demo, a page URL, a dropped file).
+- Devices: model, finish, screen (Demo, a page URL, a dropped file), and for the MacBook, the lid angle.
 - Camera: orbit (Y axis), height (X), roll (Z), distance, lens, aim, and saving A and B for a move.
 - Device rotation.
 - Look.

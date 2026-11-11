@@ -115,6 +115,19 @@ export const SHOTS = [
     fn(p, ctx) {
       const e = inOut(p);
       const spec = ctx.spec(0);
+      if (spec.webcam) {
+        // A laptop has no camera on its back: close in on the webcam in the
+        // notch instead, at real scale.
+        const pos = [0, 0, 0];
+        const rot = [0.04, lerp(-0.5, -0.15, e), 0];
+        const target = onDevice(pos, rot, spec.webcam);
+        return {
+          items: [{ slot: 0, pos, rot }],
+          cam: { pos: [target[0] + lerp(-4, 1.5, e), target[1] + lerp(2.5, 0.8, e), target[2] + lerp(20, 13, e)], target, fov: 26, roll: lerp(-0.03, 0.01, e) },
+          realScale: true,
+        };
+      }
+      // (Aimed in real cm at the device's own camera: no size scaling.)
       const pos = [0, 0, 0];
       const rot = [0.06, Math.PI + lerp(0.55, 0.12, e), 0];
       const [mx, my] = spec.module;
@@ -127,6 +140,7 @@ export const SHOTS = [
           pos: [target[0] + normal[0] * dist + lerp(3, -1.5, e), target[1] + lerp(1.6, 0.4, e), target[2] + normal[2] * dist],
           target, fov: 26, roll: lerp(-0.04, 0.02, e),
         },
+        realScale: true,
       };
     },
   },

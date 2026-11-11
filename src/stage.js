@@ -37,9 +37,10 @@ export const DEFAULTS = {
   slots: [
     // screen: "" the demo app; "dom" your elements (stage.screen(i));
     // a page URL (an iframe); a video or image URL; or a named screen.
-    { model: "iphone17pro", finish: "Deep Blue", screen: "" },
-    { model: "s25ultra", finish: "Titanium Silverblue", screen: "" },
-    { model: "iphoneAir", finish: "Sky Blue", screen: "" },
+    // lid: a laptop's opening angle in degrees (0 shut, 110 open, 135 max).
+    { model: "iphone17pro", finish: "Deep Blue", screen: "", lid: 110 },
+    { model: "s25ultra", finish: "Titanium Silverblue", screen: "", lid: 110 },
+    { model: "iphoneAir", finish: "Sky Blue", screen: "", lid: 110 },
   ],
   // The camera in "manual": an orbit round the target, in degrees and cm.
   camera: { azimuth: -6, elevation: 3, distance: 44, fov: 28, roll: 0, targetX: 0, targetY: 0 },
@@ -72,6 +73,8 @@ const VIEWPORT = {
   iphone17pro: { width: 402, top: 62, bottom: 34 },
   iphoneAir: { width: 420, top: 68, bottom: 34 },
   s25ultra: { width: 412, top: 36, bottom: 24 },
+  ipadPro11: { width: 834, top: 24, bottom: 20 },
+  macbookPro14: { width: 1512, top: 32, bottom: 0 },
 };
 
 export function merge(target, patch) {
@@ -151,7 +154,7 @@ export class DeviceStage {
     // transparent black, and the DOM below shows through.
     this.holeMaterial = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0, blending: THREE.NoBlending });
 
-    this.demos = { ios: new DemoScreen(false), android: new DemoScreen(true) };
+    this.demos = { ios: new DemoScreen(false), android: new DemoScreen(true), desktop: new DemoScreen({ desktop: true }), tablet: new DemoScreen({ tablet: true }) };
     // The CSS renderer's camera element: screens live in it from the start
     // (hidden until shown), so your UI is in the document right away.
     const cameraEl = this.cssEl.firstElementChild.firstElementChild;
@@ -201,7 +204,9 @@ export class DeviceStage {
     const v = VIEWPORT[model];
     const spec = DEVICES[model];
     const glassInset = spec.edge * 0.45;
-    const aspect = (spec.w - 2 * glassInset - 2 * spec.bezel) / (spec.h - 2 * glassInset - 2 * spec.bezel);
+    const aspect = spec.screen
+      ? spec.screen[0] / spec.screen[1]
+      : (spec.w - 2 * glassInset - 2 * spec.bezel) / (spec.h - 2 * glassInset - 2 * spec.bezel);
     return { width: v.width, height: Math.round(v.width / aspect), safeTop: v.top, safeBottom: v.bottom };
   }
 
@@ -316,6 +321,7 @@ export class DeviceStage {
       s.scale = (bb.max.x - bb.min.x) / v.width;
     }
     s.dev.setFinish(want.finish);
+    s.dev.setLid?.(want.lid ?? 110);
     want.finish = s.dev.group.userData.finish;
 
     // What the screen shows.
@@ -358,7 +364,9 @@ export class DeviceStage {
         coverFit(s.media.texture, s.media.aspect, screen.userData.aspect);
         mat.map = s.media.texture;
       } else {
-        mat.map = (DEVICES[s.model].cutout === "punch" ? this.demos.android : this.demos.ios).texture;
+        const spec = DEVICES[s.model];
+        const demo = spec.form === "laptop" ? "desktop" : spec.form === "tablet" ? "tablet" : spec.cutout === "punch" ? "android" : "ios";
+        mat.map = this.demos[demo].texture;
       }
       mat.color.setScalar(this.state.look.screen);
       mat.needsUpdate = true;
@@ -431,13 +439,19 @@ export class DeviceStage {
       if (s.dev) s.dev.group.visible = false;
       s.object.visible = false;
     }
+    // Shots are framed for phones. A bigger device (a laptop, view 2) scales
+    // the whole scene round it: poses, camera and floor, so it frames alike.
+    const view = Math.max(1, ...r.items.map((it) => this.slots[it.slot]?.dev?.spec.view || 1));
+    const k = r.realScale ? 1 : view;
+    this.shadows.group.position.y = this.shadows.floorY * view;
+    this.shadows.group.scale.setScalar(view);
     const D = this.state.device;
     for (const it of r.items) {
       const s = this.slots[it.slot];
       const g = s?.dev?.group;
       if (!g) continue;
       g.visible = true;
-      g.position.set(it.pos[0] + D.x, it.pos[1] + D.y, it.pos[2] + D.z);
+      g.position.set((it.pos[0] + D.x) * k, (it.pos[1] + D.y) * k, (it.pos[2] + D.z) * k);
       g.rotation.set(it.rot[0] + rad(D.rotX), it.rot[1] + rad(D.rotY), it.rot[2] + rad(D.rotZ));
       if (s.live) {
         // The DOM screen follows the screen mesh, scaled from CSS px to cm.
@@ -448,20 +462,24 @@ export class DeviceStage {
     }
     const c = r.cam;
     const camera = this.camera;
-    camera.position.set(...c.pos);
+    camera.position.set(...c.pos).multiplyScalar(k);
     camera.up.set(0, 1, 0);
-    camera.lookAt(...c.target);
+    camera.lookAt(c.target[0] * k, c.target[1] * k, c.target[2] * k);
     if (c.roll) camera.rotateZ(c.roll);
     let fov = c.fov;
     if (r.fitWidth) {
-      const dist = camera.position.distanceTo(new THREE.Vector3(...c.target));
-      fov = Math.max(fov, deg(2 * Math.atan(r.fitWidth / 2 / dist / camera.aspect)));
+      const dist = camera.position.distanceTo(new THREE.Vector3(...c.target).multiplyScalar(k));
+      fov = Math.max(fov, deg(2 * Math.atan((r.fitWidth * k) / 2 / dist / camera.aspect)));
     }
     camera.fov = fov;
     camera.updateProjectionMatrix();
-    this.lastCam = { pos: [...c.pos], target: [...c.target], fov };
+    // Kept in phone-framed units, so the manual camera picks up the same view.
+    const u = k / view;
+    this.lastCam = { pos: c.pos.map((v) => v * u), target: c.target.map((v) => v * u), fov };
     this.demos.ios.update(t);
     this.demos.android.update(t);
+    this.demos.desktop.update(t);
+    this.demos.tablet.update(t);
   }
 
   render() {

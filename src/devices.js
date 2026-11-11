@@ -42,6 +42,26 @@ export const DEVICES = {
       "Titanium Whitesilver": { frame: "#d6d6d4", back: "#e3e3e1", rough: 0.36 },
     },
   },
+  ipadPro11: {
+    name: 'iPad Pro 11"',
+    form: "tablet", view: 1.65, // 25 cm tall: shots frame it from 1.65x as far
+    w: 17.75, h: 24.95, d: 0.53, corner: 1.25, edge: 0.1, bezel: 0.88,
+    cutout: "none", module: [-8.875 + 2.15, 12.475 - 2.15],
+    finishes: {
+      "Space Black": { frame: "#323234", back: "#2b2b2d", rough: 0.32 },
+      Silver: { frame: "#d9d9d7", back: "#e2e2e0", rough: 0.28 },
+    },
+  },
+  macbookPro14: {
+    name: 'MacBook Pro 14"',
+    form: "laptop", view: 2, // twice a phone's size: shots frame it from twice as far
+    w: 31.26, h: 21.5, d: 0.55, corner: 0.7, edge: 0.12, bezel: 0.5,
+    screen: [30.25, 19.65], chin: 1.3, baseD: 22.12, baseH: 1.0,
+    finishes: {
+      "Space Black": { frame: "#3a3a3d", back: "#3a3a3d", rough: 0.36, keys: "#0c0c0d" },
+      Silver: { frame: "#d4d5d7", back: "#d4d5d7", rough: 0.28, keys: "#141415" },
+    },
+  },
 };
 
 // A rounded rectangle, centred; the top and bottom corners can differ.
@@ -61,8 +81,8 @@ function roundedRect(w, h, rTop, rBottom = rTop) {
 }
 
 // A flat rounded rectangle with 0-1 UVs across it (for the screen).
-function flatPanel(w, h, r, segments = 24) {
-  const g = new THREE.ShapeGeometry(roundedRect(w, h, r), segments);
+function flatPanel(w, h, r, segments = 24, rBottom = r) {
+  const g = new THREE.ShapeGeometry(roundedRect(w, h, r, rBottom), segments);
   const pos = g.attributes.position, uv = g.attributes.uv;
   for (let i = 0; i < pos.count; i++) {
     uv.setXY(i, pos.getX(i) / w + 0.5, pos.getY(i) / h + 0.5);
@@ -143,9 +163,181 @@ function button(len, frameMat, depthAlong, bulge = 0.07) {
   return new THREE.Mesh(new RoundedBoxGeometry(bulge * 2, len, depthAlong, 4, Math.min(bulge, depthAlong / 2) * 0.95), frameMat);
 }
 
+// A MacBook: the base tips toward the viewer and the lid swings on the hinge
+// at its back edge (setLid: 0 closed, 110 the default, 135 wide open). The
+// group is centred on the open laptop's bounding box, and stays put as the
+// lid moves. `screen` is the display's active area (cm).
+const KEY_ROWS = [
+  // [row height in key units, [key widths in units]]
+  [0.5, Array(14).fill(1)],
+  [1, [...Array(13).fill(1), 1.5]],
+  [1, [1.5, ...Array(13).fill(1)]],
+  [1, [1.8, ...Array(11).fill(1), 1.7]],
+  [1, [2.3, ...Array(10).fill(1), 2.2]],
+  [1, [1, 1, 1, 1.25, 5, 1.25, 1, "arrows"]],
+];
+
+function buildLaptop(id, finishName, spec) {
+  const { w, h, d, corner, edge, baseD, baseH, screen: [sw, sh], chin } = spec;
+  const group = new THREE.Group();
+  group.name = spec.name;
+  const rig = new THREE.Group();
+  group.add(rig);
+
+  const frameMat = new THREE.MeshPhysicalMaterial({ metalness: 1, roughness: 0.3, clearcoat: 0.35, clearcoatRoughness: 0.22 });
+  const keyMat = new THREE.MeshStandardMaterial({ color: "#111112", roughness: 0.62 });
+  // A laptop's panel is anti-glare coated: a matte black bezel, weak glass.
+  const bezelMat = new THREE.MeshStandardMaterial({ color: "#060607", roughness: 0.7 });
+  const drop = THREE.MathUtils.degToRad(12);
+
+  // The base, from the hinge forward: deck top at y = 0, back edge at z = 0.
+  const base = new THREE.Group();
+  base.rotation.x = drop;
+  rig.add(base);
+
+  // The lid hangs on the hinge axis (the base's back top edge), its screen
+  // face on the axis: open, it stands behind the base; shut, it lies on it.
+  // Built from the hinge: bottom at y = 0, screen face at z = 0.
+  const lid = new THREE.Group();
+  base.add(lid);
+  const body = new THREE.Mesh(slab(w, h, corner, corner * 0.6, d, edge), frameMat);
+  body.position.set(0, h / 2, -d / 2);
+  lid.add(body);
+
+  const front = 0;
+  const glassInset = edge * 0.5;
+  const faceW = w - 2 * glassInset, faceH = h - 2 * glassInset;
+  const cover = new THREE.Mesh(new THREE.ShapeGeometry(roundedRect(faceW, faceH, corner - glassInset, corner * 0.6 - glassInset), 32), bezelMat);
+  cover.position.set(0, h / 2, front + 0.004);
+  lid.add(cover);
+
+  const screenY = chin + sh / 2;
+  const screenMat = new THREE.MeshBasicMaterial({ color: "#ffffff", toneMapped: false });
+  const screen = new THREE.Mesh(flatPanel(sw, sh, 0.62, 32, 0.1), screenMat);
+  screen.position.set(0, screenY, front + 0.012);
+  screen.userData.aspect = sw / sh;
+  lid.add(screen);
+
+  // The notch, hanging from the top edge of the display: 200 x 32 pt.
+  const notchW = (200 / 1512) * sw, notchH = (32 / 1512) * sw;
+  const notch = new THREE.Mesh(new THREE.ShapeGeometry(roundedRect(notchW, notchH + 0.2, 0.01, 0.16), 16), bezelMat);
+  notch.position.set(0, screenY + sh / 2 - notchH / 2 + 0.1, front + 0.02);
+  lid.add(notch);
+  const cam = new THREE.Mesh(new THREE.CircleGeometry(0.11, 24), MAT.lensGlass);
+  cam.position.set(0, screenY + sh / 2 - notchH / 2 + 0.05, front + 0.024);
+  lid.add(cam);
+
+  const glass = new THREE.Mesh(new THREE.ShapeGeometry(roundedRect(faceW, faceH, corner - glassInset, corner * 0.6 - glassInset), 32), glassMaterial());
+  glass.material.specularIntensity = 0.3;
+  glass.position.set(0, h / 2, front + 0.028);
+  glass.renderOrder = 2;
+  lid.add(glass);
+
+  const baseBody = new THREE.Mesh(slab(w, baseD, corner, corner, baseH, 0.22), frameMat);
+  baseBody.rotation.x = -Math.PI / 2;
+  baseBody.position.set(0, -baseH / 2, baseD / 2);
+  base.add(baseBody);
+
+  // Keys: one instanced mesh, laid out in rows from the hinge side.
+  const pitch = 27.0 / 14.5, gap = 0.2;
+  const kbTop = 1.25;
+  const rects = [];
+  let z = kbTop;
+  for (const [rowH, keys] of KEY_ROWS) {
+    const depth = rowH * pitch;
+    let x = -14.5 * pitch / 2;
+    for (const k of keys) {
+      if (k === "arrows") {
+        const aw = pitch;
+        rects.push([x + aw / 2, z + depth * 0.75, aw - gap, depth / 2 - gap / 2]);
+        rects.push([x + aw * 1.5, z + depth * 0.25, aw - gap, depth / 2 - gap / 2]);
+        rects.push([x + aw * 1.5, z + depth * 0.75, aw - gap, depth / 2 - gap / 2]);
+        rects.push([x + aw * 2.5, z + depth * 0.75, aw - gap, depth / 2 - gap / 2]);
+        x += 3 * aw;
+        continue;
+      }
+      rects.push([x + (k * pitch) / 2, z + depth / 2, k * pitch - gap, depth - gap]);
+      x += k * pitch;
+    }
+    z += depth;
+  }
+  const keyGeo = new RoundedBoxGeometry(1, 0.08, 1, 2, 0.03);
+  const keys = new THREE.InstancedMesh(keyGeo, keyMat, rects.length);
+  const m = new THREE.Matrix4();
+  rects.forEach(([x, kz, kw, kd], i) => {
+    m.compose(new THREE.Vector3(x, 0.02, kz), new THREE.Quaternion(), new THREE.Vector3(kw, 1, kd));
+    keys.setMatrixAt(i, m);
+  });
+  base.add(keys);
+
+  // The keyboard well, and the speaker grilles either side of it.
+  const kbDepth = z - kbTop;
+  const well = new THREE.Mesh(new THREE.ShapeGeometry(roundedRect(14.5 * pitch + 0.3, kbDepth + 0.3, 0.2), 8), MAT.port);
+  well.rotation.x = -Math.PI / 2;
+  well.position.set(0, 0.003, kbTop + kbDepth / 2);
+  base.add(well);
+  const grilleGeo = new THREE.ShapeGeometry(roundedRect(1.15, kbDepth, 0.1), 8);
+  for (const side of [-1, 1]) {
+    const grille = new THREE.Mesh(grilleGeo, MAT.antenna);
+    grille.rotation.x = -Math.PI / 2;
+    grille.position.set(side * (14.5 * pitch / 2 + 1.0), 0.003, kbTop + kbDepth / 2);
+    base.add(grille);
+  }
+
+  // The trackpad: a slightly smoother patch of the same metal.
+  const padW = 15.0, padD = 9.4;
+  const padMat = new THREE.MeshPhysicalMaterial({ metalness: 1, roughness: 0.2, clearcoat: 0.6, clearcoatRoughness: 0.1 });
+  const pad = new THREE.Mesh(new THREE.ShapeGeometry(roundedRect(padW, padD, 0.45), 16), padMat);
+  pad.rotation.x = -Math.PI / 2;
+  pad.position.set(0, 0.004, baseD - 0.9 - padD / 2);
+  base.add(pad);
+
+  // Ports on the sides of the base.
+  for (const [side, zz] of [[-1, 5.0], [-1, 7.0], [1, 6.0]]) {
+    const port = new THREE.Mesh(new RoundedBoxGeometry(0.06, 0.32, 0.9, 3, 0.025), MAT.port);
+    port.position.set(side * (w / 2 - 0.02), -baseH * 0.48, zz);
+    base.add(port);
+  }
+
+  // The opening angle between the deck and the lid, in degrees.
+  const webcam = new THREE.Vector3();
+  function setLid(deg = 110) {
+    const a = THREE.MathUtils.clamp(Number(deg) || 0, 0, 135);
+    lid.rotation.x = THREE.MathUtils.degToRad(90 - a);
+    group.userData.lid = a;
+    // The webcam, in the group's coordinates (the macro shot aims at it).
+    group.updateMatrixWorld(true);
+    spec.webcam = group.worldToLocal(cam.getWorldPosition(webcam)).toArray();
+  }
+
+  // Centre the whole laptop on its bounding box, open at the default angle.
+  setLid(110);
+  rig.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(rig);
+  rig.position.sub(box.getCenter(new THREE.Vector3()));
+  setLid(110);
+
+  group.traverse((o) => {
+    if (o.isMesh) o.castShadow = false;
+  });
+
+  function setFinish(name) {
+    const f = spec.finishes[name] || Object.values(spec.finishes)[0];
+    frameMat.color.set(f.frame);
+    frameMat.roughness = f.rough;
+    padMat.color.set(f.frame);
+    keyMat.color.set(f.keys || "#111112");
+    group.userData.finish = name in spec.finishes ? name : Object.keys(spec.finishes)[0];
+  }
+  setFinish(finishName);
+
+  return { id, group, screen, glass, spec, setFinish, setLid };
+}
+
 // Builds one device; returns { group, screen, glass, spec, setFinish }.
 export function buildDevice(id, finishName) {
   const spec = DEVICES[id];
+  if (spec?.form === "laptop") return buildLaptop(id, finishName, spec);
   const { w, h, d, corner, edge, bezel } = spec;
   const group = new THREE.Group();
   group.name = spec.name;
@@ -172,7 +364,12 @@ export function buildDevice(id, finishName) {
   screen.userData.aspect = sw / sh;
   group.add(screen);
 
-  if (spec.cutout === "island") {
+  if (spec.cutout === "none") {
+    // The front camera sits in the bezel on the long edge (landscape top).
+    const cam = new THREE.Mesh(new THREE.CircleGeometry(0.1, 24), MAT.lensGlass);
+    cam.position.set(sw / 2 + bezel / 2, 0, front + 0.02);
+    group.add(cam);
+  } else if (spec.cutout === "island") {
     const iw = 1.26, ih = 0.37;
     const island = new THREE.Mesh(new THREE.ShapeGeometry(roundedRect(iw, ih, ih / 2), 16), MAT.black);
     island.position.set(0, sh / 2 - 0.12 - ih / 2, front + 0.02);
@@ -216,6 +413,24 @@ export function buildDevice(id, finishName) {
     const lidar = lens(0.24, 0.04, frameMat, "sensor");
     lidar.position.set(right - 1.05, top - 2.62, z);
     back.add(lidar);
+  } else if (id === "ipadPro11") {
+    // A squircle module in the corner: the wide lens, LiDAR, flash, mic.
+    const [mx, my] = spec.module;
+    const plateau = new THREE.Mesh(slab(2.75, 2.75, 0.85, 0.85, 0.2, 0.07), frameMat);
+    plateau.position.set(mx, my, 0.1);
+    back.add(plateau);
+    const wide = lens(0.62, 0.14, frameMat);
+    wide.position.set(mx - 0.55, my + 0.55, 0.2);
+    back.add(wide);
+    const lidar = lens(0.4, 0.04, frameMat, "sensor");
+    lidar.position.set(mx - 0.55, my - 0.6, 0.2);
+    back.add(lidar);
+    const flash = lens(0.22, 0.03, frameMat, "flash");
+    flash.position.set(mx + 0.62, my + 0.6, 0.2);
+    back.add(flash);
+    const mic = new THREE.Mesh(new THREE.CircleGeometry(0.07, 16), MAT.port);
+    mic.position.set(mx + 0.62, my - 0.25, 0.205);
+    back.add(mic);
   } else if (id === "iphoneAir") {
     // The plateau: one pill across the top.
     const pw = w - 0.9, ph = 2.05;
@@ -258,7 +473,15 @@ export function buildDevice(id, finishName) {
     b.position.set(side * (w / 2 - 0.035), y, 0);
     group.add(b);
   };
-  if (id === "s25ultra") {
+  if (spec.form === "tablet") {
+    // Volume on the right edge near the top; the top button on the top edge.
+    addButton(1, h / 2 - 3.2, 1.6);
+    addButton(1, h / 2 - 5.2, 1.6);
+    const top = button(2.2, frameMat, sideDepth);
+    top.rotation.z = Math.PI / 2;
+    top.position.set(w / 2 - 3.0, h / 2 - 0.035, 0);
+    group.add(top);
+  } else if (id === "s25ultra") {
     addButton(1, 3.4, 2.1);
     addButton(1, 1.3, 1.15);
   } else {
@@ -270,7 +493,7 @@ export function buildDevice(id, finishName) {
   }
 
   // Antenna bands across the frame, near the top and bottom corners.
-  for (const [x, y] of [[-1, h / 2 - 1.6], [1, h / 2 - 1.6], [-1, -h / 2 + 1.6], [1, -h / 2 + 1.6]]) {
+  if (spec.form !== "tablet") for (const [x, y] of [[-1, h / 2 - 1.6], [1, h / 2 - 1.6], [-1, -h / 2 + 1.6], [1, -h / 2 + 1.6]]) {
     const band = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.08, sideDepth * 1.05), MAT.antenna);
     band.position.set(x * (w / 2 - 0.005), y, 0);
     group.add(band);
@@ -281,10 +504,14 @@ export function buildDevice(id, finishName) {
   port.position.set(0, -h / 2 + 0.01, 0);
   group.add(port);
   const holeGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.06, 16);
-  for (let i = 0; i < 6; i++) {
-    for (const side of [-1, 1]) {
+  // A tablet has four speakers, one grille near each corner, top and bottom.
+  const grilles = spec.form === "tablet"
+    ? [-1, 1].flatMap((end) => [-1, 1].map((side) => [end, side * (w / 2 - 3.2)]))
+    : [-1, 1].map((side) => [-1, side * (0.85 + 2.5 * 0.17)]);
+  for (const [end, cx] of grilles) {
+    for (let i = 0; i < 6; i++) {
       const hole = new THREE.Mesh(holeGeo, MAT.port);
-      hole.position.set(side * (0.85 + i * 0.17), -h / 2 + 0.012, 0);
+      hole.position.set(cx + (i - 2.5) * 0.17, end * (h / 2 - 0.012), 0);
       group.add(hole);
     }
   }

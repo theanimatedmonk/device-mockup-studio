@@ -135,6 +135,9 @@ export function buildUI(api, state, { DEVICES, BACKDROPS, ASPECTS, loadFile }) {
       for (const b of swatches.children) b.classList.toggle("on", b.title === slot.finish);
       finishName.textContent = slot.finish;
     });
+    // A laptop's lid: drag to shut or open it.
+    const lid = slider(`slots.${i}.lid`, "Lid (hinge)", 0, 135, 1, { unit: "°" });
+    binds.push((s) => (lid.hidden = DEVICES[s.slots[i].model].form !== "laptop"));
     const file = el("input", { type: "file", accept: "video/*,image/*", hidden: true });
     file.addEventListener("change", () => {
       if (file.files[0]) loadFile(i, file.files[0]);
@@ -150,6 +153,7 @@ export function buildUI(api, state, { DEVICES, BACKDROPS, ASPECTS, loadFile }) {
       el("div", { class: "card__title" }, title),
       model,
       el("div", { class: "row" }, swatches, finishName),
+      lid,
       el(
         "div", { class: "row" },
         el("button", { type: "button", class: "btn small", onclick: () => file.click() }, "Screen video / image"),

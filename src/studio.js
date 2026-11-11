@@ -86,6 +86,7 @@ export class ContactShadows {
     this.blur = 3.2;
     this.opacity = 0.55;
     this.group = new THREE.Group();
+    this.floorY = floorY;
     this.group.position.y = floorY;
     scene.add(this.group);
 
