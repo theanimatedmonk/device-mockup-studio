@@ -20,7 +20,7 @@
 
 import * as THREE from "three";
 import { CSS3DRenderer, CSS3DObject } from "three/addons/renderers/CSS3DRenderer.js";
-import { DEVICES, buildDevice } from "./devices.js";
+import { DEVICES, CASES, buildDevice } from "./devices.js";
 import { studioEnvironment, BACKDROPS, backdropTexture, ContactShadows } from "./studio.js";
 import { DemoScreen, MediaScreen, coverFit } from "./screen.js";
 import { SHOTS } from "./shots.js";
@@ -38,9 +38,10 @@ export const DEFAULTS = {
     // screen: "" the demo app; "dom" your elements (stage.screen(i));
     // a page URL (an iframe); a video or image URL; or a named screen.
     // lid: a laptop's opening angle in degrees (0 shut, 110 open, 135 max).
-    { model: "iphone17pro", finish: "Deep Blue", screen: "", lid: 110 },
-    { model: "s25ultra", finish: "Titanium Silverblue", screen: "", lid: 110 },
-    { model: "iphoneAir", finish: "Sky Blue", screen: "", lid: 110 },
+    // case: a phone's case, "none", "olive", "pink", "blue" or "teal" (stage.cases).
+    { model: "iphone17pro", finish: "Deep Blue", screen: "", lid: 110, case: "none" },
+    { model: "s25ultra", finish: "Titanium Silverblue", screen: "", lid: 110, case: "none" },
+    { model: "iphoneAir", finish: "Sky Blue", screen: "", lid: 110, case: "none" },
   ],
   // The camera in "manual": an orbit round the target, in degrees and cm.
   camera: { azimuth: -6, elevation: 3, distance: 44, fov: 28, roll: 0, targetX: 0, targetY: 0 },
@@ -193,7 +194,7 @@ export class DeviceStage {
     return [...SHOTS.map(({ id, name, count, dur, loop }) => ({ id, name, devices: count, duration: dur, loop })), { id: "manual", name: "Manual (sliders, drag to orbit)", devices: "layout", duration: null, loop: true }];
   }
   get devices() {
-    return Object.entries(DEVICES).map(([id, d]) => ({ id, name: d.name, finishes: Object.keys(d.finishes), viewport: this.viewport(id) }));
+    return Object.entries(DEVICES).map(([id, d]) => ({ id, name: d.name, finishes: Object.keys(d.finishes), cases: d.form ? [] : Object.keys(CASES), viewport: this.viewport(id) }));
   }
   get backdrops() {
     return [...Object.keys(BACKDROPS), "Custom"];
@@ -322,6 +323,7 @@ export class DeviceStage {
     }
     s.dev.setFinish(want.finish);
     s.dev.setLid?.(want.lid ?? 110);
+    s.dev.setCase?.(want.case ?? "none");
     want.finish = s.dev.group.userData.finish;
 
     // What the screen shows.

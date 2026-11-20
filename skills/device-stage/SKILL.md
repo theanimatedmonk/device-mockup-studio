@@ -59,7 +59,7 @@ Design at those sizes, or zoom to them.
 - `set(patch)` sets any part of the state:
   - `shot`, `duration`, `camera {azimuth, elevation, roll, distance, fov, targetX, targetY}`
   - `device {rotX, rotY, rotZ, x, y, z}`
-  - `slots[i] {model, finish, screen, lid}`: `lid` is the MacBook's hinge angle in degrees (0 shut, 110 default, 135 max). Step it over time to film the lid opening.
+  - `slots[i] {model, finish, screen, lid, case}`: `case` puts a phone in a silicone case (`"none"` default, `"olive"`, `"pink"`, `"blue"`, `"teal"`; phones only, ignored on the iPad and MacBook). `lid` is the MacBook's hinge angle in degrees (0 shut, 110 default, 135 max). Step it over time to film the lid opening.
   - `look {backdrop, …}`, `output`
 - `seek(t)` renders exactly the frame at `t` seconds. Use it with `set({ playing: false })`, so the timeline, not the stage's clock, drives the camera.
 - `frameWindow(i)` is the iframe's window, for driving a page: click elements in it, or `postMessage` to it.

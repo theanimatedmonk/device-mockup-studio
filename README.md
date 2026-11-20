@@ -124,6 +124,7 @@ It only filters the pointer. A script can always do both: set the camera with `s
 | Attribute | Sets |
 |---|---|
 | `device`, `finish` | Device 1's model and finish |
+| `case` | A phone case on device 1: `none` (default), `olive`, `pink`, `blue` or `teal` |
 | `src` | Device 1's screen |
 | `shot`, `duration` | The camera move and its length |
 | `paused` | Holds the clock |
@@ -273,6 +274,7 @@ The pieces, if you build your own:
 | | |
 |---|---|
 | `model`, `finish` | Any model and finish above |
+| `case` | A phone's case: `none` (default), `olive`, `pink`, `blue` or `teal` |
 | `keys` | Timed poses: `{ at, ease, cut, az, el, dist, fov, roll, tx, ty, rx, ry, rz, x, y, z, lid }`. Missing fields carry over from the key before; between keys every field eases together with the later key's `ease` (a GSAP ease name; default `power2.inOut`); `cut: true` jumps |
 | `look` | Any `look` state (`backdrop: "Custom"`, `inner`, `outer`, `shadow`, …) |
 | `clearBackdrop` | `true` lets the page's background show behind the device |
@@ -296,7 +298,7 @@ The pieces, if you build your own:
 The studio is a control panel over one stage, for designing shots. Its sections:
 - Shot.
 - Pointer.
-- Devices: model, finish, screen (Demo, a page URL, a dropped file), and for the MacBook, the lid angle.
+- Devices: model, finish, a case for the phones (none, olive, pink, blue, teal), screen (Demo, a page URL, a dropped file), and for the MacBook, the lid angle.
 - Camera: orbit (Y axis), height (X), roll (Z), distance, lens, aim, and saving A and B for a move.
 - Device rotation.
 - Look.

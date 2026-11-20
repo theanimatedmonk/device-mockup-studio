@@ -25,7 +25,7 @@ function patchFor(path, value) {
 }
 const fmt = (v, step) => (step >= 1 ? String(Math.round(v)) : String(+v.toFixed(step < 0.1 ? 2 : 1)));
 
-export function buildUI(api, state, { DEVICES, BACKDROPS, ASPECTS, loadFile }) {
+export function buildUI(api, state, { DEVICES, CASES = {}, BACKDROPS, ASPECTS, loadFile }) {
   const panel = document.getElementById("panel");
   const body = document.getElementById("panel-body");
   const binds = [];
@@ -138,6 +138,26 @@ export function buildUI(api, state, { DEVICES, BACKDROPS, ASPECTS, loadFile }) {
     // A laptop's lid: drag to shut or open it.
     const lid = slider(`slots.${i}.lid`, "Lid (hinge)", 0, 135, 1, { unit: "°" });
     binds.push((s) => (lid.hidden = DEVICES[s.slots[i].model].form !== "laptop"));
+    // A phone's case: none, or a soft silicone one.
+    const cases = el(
+      "div", { class: "swatches" },
+      ...Object.entries(CASES).map(([id, c]) =>
+        el("button", {
+          type: "button", class: c.color ? "swatch" : "swatch none", title: c.name, "data-case": id,
+          style: c.color ? `--c:${c.sheen};--e:${c.color}` : undefined,
+          onclick: () => api.set(patchFor(`slots.${i}.case`, id)),
+        }),
+      ),
+    );
+    const caseName = el("span", { class: "hint" });
+    const caseRow = el("div", { class: "row" }, el("span", { class: "hint" }, "Case"), cases, caseName);
+    binds.push((s) => {
+      const slot = s.slots[i];
+      caseRow.hidden = !!DEVICES[slot.model].form;
+      const cur = CASES[slot.case] ? slot.case : "none";
+      for (const b of cases.children) b.classList.toggle("on", b.dataset.case === cur);
+      caseName.textContent = CASES[cur]?.name || "";
+    });
     const file = el("input", { type: "file", accept: "video/*,image/*", hidden: true });
     file.addEventListener("change", () => {
       if (file.files[0]) loadFile(i, file.files[0]);
@@ -153,6 +173,7 @@ export function buildUI(api, state, { DEVICES, BACKDROPS, ASPECTS, loadFile }) {
       el("div", { class: "card__title" }, title),
       model,
       el("div", { class: "row" }, swatches, finishName),
+      caseRow,
       lid,
       el(
         "div", { class: "row" },

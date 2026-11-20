@@ -64,6 +64,108 @@ export const DEVICES = {
   },
 };
 
+// Silicone cases for the phones (not the iPad or the MacBook). "none" is bare.
+export const CASES = {
+  none: { name: "No case" },
+  olive: { name: "Olive", color: "#a4ae6a", sheen: "#dde4b4" },
+  pink: { name: "Pink", color: "#ffb8cc", sheen: "#fff0f4" },
+  blue: { name: "Blue", color: "#8cbcff", sheen: "#e2efff" },
+  teal: { name: "Teal", color: "#5fd0c2", sheen: "#d4f7f2" },
+};
+
+// Where each phone's case is cut open round the cameras, in the back's
+// coordinates (x runs right as seen from behind): [cx, cy, w, h, r].
+function caseCut(id, { w, h }) {
+  const top = h / 2, left = -w / 2;
+  if (id === "iphone17pro") return [0, top - 0.16 - 1.775, w - 0.9, 3.25, 0.75];
+  if (id === "iphoneAir") return [0, top - 0.42 - 1.025, w - 0.78, 2.17, 1.085];
+  return [left + 2.02, top - 2.92, 2.6, 4.3, 0.62];
+}
+
+// A rounded rectangle path (for holes), centred on (cx, cy).
+function roundedPath(cx, cy, w, h, r) {
+  const p = new THREE.Path();
+  const x = cx - w / 2, y = cy - h / 2;
+  p.moveTo(x + r, y);
+  p.lineTo(x + w - r, y);
+  p.quadraticCurveTo(x + w, y, x + w, y + r);
+  p.lineTo(x + w, y + h - r);
+  p.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  p.lineTo(x + r, y + h);
+  p.quadraticCurveTo(x, y + h, x, y + h - r);
+  p.lineTo(x, y + r);
+  p.quadraticCurveTo(x, y, x + r, y);
+  return p;
+}
+
+// The case: a soft band round the sides with a lip over the glass's edge,
+// a back plate cut open round the cameras, bumps over the buttons and a
+// slot for the port. Hidden while the slot's case is "none".
+function buildCase(id, spec, group, back, buttons) {
+  const { w, h, d, corner, edge } = spec;
+  const side = 0.13, backT = 0.12, lip = 0.06;
+  const mat = new THREE.MeshPhysicalMaterial({ roughness: 0.72, metalness: 0, sheen: 0.6, sheenRoughness: 0.6, clearcoat: 0.08, clearcoatRoughness: 0.6 });
+  const shell = new THREE.Group();
+  shell.name = "case";
+
+  // The band, from the back plate to the lip, open at the front.
+  const glassInset = edge * 0.45;
+  const ow = w + 2 * side, oh = h + 2 * side, oc = corner + side;
+  const b = 0.08;
+  const outline = roundedRect(ow - 2 * b, oh - 2 * b, oc - b);
+  // The opening at the lip just overlaps the glass's edge; deeper in, the
+  // bevel narrows it, so the band hides the metal frame.
+  const hw = w - 2 * glassInset - 0.02, hh = h - 2 * glassInset - 0.02;
+  outline.holes.push(roundedPath(0, 0, hw, hh, corner - glassInset - 0.01));
+  const depth = d + backT + lip;
+  const bandGeo = new THREE.ExtrudeGeometry(outline, { depth: depth - 2 * b, bevelEnabled: true, bevelThickness: b, bevelSize: b, bevelSegments: 8, curveSegments: 32 });
+  bandGeo.translate(0, 0, -d / 2 - backT + b);
+  bandGeo.computeVertexNormals();
+  shell.add(new THREE.Mesh(bandGeo, mat));
+
+  // The back plate fills the band's opening behind the phone, cut round the cameras.
+  const [cx, cy, cw, ch, cr] = caseCut(id, spec);
+  const plateShape = roundedRect(hw + 0.3, hh + 0.3, corner - glassInset + 0.15);
+  plateShape.holes.push(roundedPath(cx, cy, cw, ch, cr));
+  // From just off the back glass to just inside the band's back face.
+  const plateGeo = new THREE.ExtrudeGeometry(plateShape, { depth: backT - 0.063, bevelEnabled: true, bevelThickness: 0.02, bevelSize: 0.02, bevelSegments: 3, curveSegments: 32 });
+  const plateMesh = new THREE.Mesh(plateGeo, mat);
+  plateMesh.position.z = 0.035;
+  back.add(plateMesh);
+
+  // Soft bumps over the buttons (the camera control stays open).
+  for (const btn of buttons) {
+    if (btn.material === MAT.sapphire) {
+      // A sapphire key shows through a window: a dark rim round it.
+      const win = new THREE.Mesh(new RoundedBoxGeometry(0.06, btn.userData.len + 0.2, d * 0.62, 4, 0.025), MAT.port);
+      win.position.set(Math.sign(btn.position.x) * (w / 2 + side + 0.005), btn.position.y, 0);
+      shell.add(win);
+      continue;
+    }
+    const bump = new THREE.Mesh(new RoundedBoxGeometry(0.12, btn.userData.len + 0.12, d * 0.62, 4, 0.055), mat);
+    bump.position.set(Math.sign(btn.position.x) * (w / 2 + side + 0.02), btn.position.y, 0);
+    shell.add(bump);
+  }
+
+  // The bottom: a slot open over the port and the speakers.
+  const slot = new THREE.Mesh(new RoundedBoxGeometry(3.4, 0.06, Math.min(0.42, d * 0.55), 4, 0.029), MAT.port);
+  slot.position.set(0, -h / 2 - side + 0.005, 0);
+  shell.add(slot);
+
+  group.add(shell);
+  const parts = [shell, plateMesh];
+  return function setCase(name) {
+    const c = CASES[name];
+    const on = !!c?.color;
+    for (const p of parts) p.visible = on;
+    if (on) {
+      mat.color.set(c.color);
+      mat.sheenColor.set(c.sheen);
+    }
+    group.userData.case = on ? name : "none";
+  };
+}
+
 // A rounded rectangle, centred; the top and bottom corners can differ.
 function roundedRect(w, h, rTop, rBottom = rTop) {
   const x = -w / 2, y = -h / 2;
@@ -468,9 +570,12 @@ export function buildDevice(id, finishName) {
 
   // Buttons on the sides (left / right as seen from the front).
   const sideDepth = Math.max(d - 2 * edge, 0.2) * 0.8;
+  const buttons = [];
   const addButton = (side, y, len, mat = frameMat) => {
     const b = button(len, mat, sideDepth);
     b.position.set(side * (w / 2 - 0.035), y, 0);
+    b.userData.len = len;
+    buttons.push(b);
     group.add(b);
   };
   if (spec.form === "tablet") {
@@ -516,6 +621,10 @@ export function buildDevice(id, finishName) {
     }
   }
 
+  // Phones can wear a case; tablets and laptops cannot.
+  const setCase = spec.form ? null : buildCase(id, spec, group, back, buttons);
+  setCase?.("none");
+
   group.traverse((o) => {
     if (o.isMesh) o.castShadow = false;
   });
@@ -529,5 +638,5 @@ export function buildDevice(id, finishName) {
   }
   setFinish(finishName);
 
-  return { id, group, screen, glass, spec, setFinish };
+  return { id, group, screen, glass, spec, setFinish, setCase };
 }

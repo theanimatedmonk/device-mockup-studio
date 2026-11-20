@@ -12,14 +12,14 @@
 // 100% or the container units cqw / cqh, and pad it with
 // var(--ds-safe-top) and var(--ds-safe-bottom).
 //
-// Attributes: device, finish, src (device 1's screen: a page, video or
+// Attributes: device, finish, case ("none" | "olive" | "pink" | "blue" | "teal"), src (device 1's screen: a page, video or
 // image URL), shot, duration, backdrop, interact ("screen" | "device"),
 // aspect, paused, lock-toggle="off", and state (JSON, any part of the state).
 // The element's `stage` is the DeviceStage, for set(), seek() and the rest.
 
 import { DeviceStage } from "./stage.js";
 
-const ATTRS = ["device", "finish", "src", "shot", "duration", "backdrop", "interact", "aspect", "paused", "state"];
+const ATTRS = ["device", "finish", "case", "src", "shot", "duration", "backdrop", "interact", "aspect", "paused", "state"];
 
 function patchFrom(el, name) {
   const v = el.getAttribute(name);
@@ -28,6 +28,8 @@ function patchFrom(el, name) {
       return v ? { slots: [{ model: v }] } : null;
     case "finish":
       return v ? { slots: [{ finish: v }] } : null;
+    case "case":
+      return v ? { slots: [{ case: v }] } : null;
     case "src":
       return v !== null ? { slots: [{ screen: v }] } : null;
     case "shot":
