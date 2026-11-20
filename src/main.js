@@ -11,7 +11,7 @@
 // See README.md.
 
 import { DeviceStage, DEFAULTS, ASPECTS, merge } from "./stage.js";
-import { DEVICES } from "./devices.js";
+import { DEVICES, CASES } from "./devices.js";
 import { BACKDROPS } from "./studio.js";
 import { buildUI } from "./ui.js";
 
@@ -105,7 +105,7 @@ window.addEventListener("keydown", (e) => {
   else if (e.key === "l") stage.setInteract(stage.state.interact === "screen" ? "device" : "screen");
 });
 
-const ui = showUI ? buildUI(stage, stage.state, { DEVICES, BACKDROPS, ASPECTS, loadFile: (i, file) => stage.setScreen(i, file) }) : null;
+const ui = showUI ? buildUI(stage, stage.state, { DEVICES, CASES, BACKDROPS, ASPECTS, loadFile: (i, file) => stage.setScreen(i, file) }) : null;
 if (!showUI) document.body.classList.add("bare");
 if (ui) {
   stage.on((s) => ui.refresh(s));

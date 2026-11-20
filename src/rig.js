@@ -100,7 +100,7 @@ export function fillPose(model, { lid = 110, fit = "width", aspect = 16 / 9, fov
   };
 }
 
-export function createDevice(container, { model, finish, keys, look = {}, glass = false, clearBackdrop = false }) {
+export function createDevice(container, { model, finish, case: caseName = "none", keys, look = {}, glass = false, clearBackdrop = false }) {
   const stage = new DeviceStage(container, {
     lockToggle: false,
     state: {
@@ -108,7 +108,7 @@ export function createDevice(container, { model, finish, keys, look = {}, glass 
       playing: false,
       layout: 1,
       interact: "device",
-      slots: [{ model, finish: finish || Object.keys(DEVICES[model].finishes)[0], screen: "dom", lid: 110 }],
+      slots: [{ model, finish: finish || Object.keys(DEVICES[model].finishes)[0], screen: "dom", lid: 110, case: caseName }],
       device: { rotX: 0, rotY: 0, rotZ: 0, x: 0, y: 0, z: 0, float: 0 },
       look: { backdrop: "Custom", inner: "#0f1830", outer: "#040508", shadow: 0.35, reflections: 0.9, exposure: 1, glare: 0.6, screen: 1, ...look },
       output: { aspect: "fill", height: 1080, fps: 30 },
